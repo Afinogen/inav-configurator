@@ -1,10 +1,19 @@
-/*global $, ServoMixRule*/
+/*global $, MotorMixRule*/
 'use strict';
 
-var ServoMixRuleCollection = function () {
+var MotorMixerRuleCollection = function () {
 
-    var self = {};
-    var data = [];
+    let self = {},
+        data = [],
+        maxMotorCount = 8;
+
+    self.setMotorCount = function (value) {
+        maxMotorCount = value;
+    };
+
+    self.getMotorCount = function () {
+        return maxMotorCount;
+    };
 
     self.put = function (element) {
         data.push(element);
@@ -15,7 +24,7 @@ var ServoMixRuleCollection = function () {
     };
 
     self.drop = function (index) {
-        data[index].setRate(0);
+        data[index].setThrottle(0);
         self.cleanup();
     };
 
@@ -37,12 +46,16 @@ var ServoMixRuleCollection = function () {
 
     self.inflate = function () {
         while (self.hasFreeSlots()) {
-            self.put(new ServoMixRule(0, 0, 0, 0));
+            self.put(new MotorMixRule(0, 0, 0, 0));
         }
-    }
+    };
 
     self.hasFreeSlots = function () {
-        return data.length < 16;
+        return data.length < self.getMotorCount();
+    };
+
+    self.getNumberOfConfiguredMotors = function () {
+        return data.length;
     };
 
     return self;

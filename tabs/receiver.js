@@ -20,7 +20,7 @@ TABS.receiver.initialize = function (callback) {
         mspHelper.loadMisc,
         mspHelper.loadRcData,
         mspHelper.loadRcMap,
-        mspHelper.loadBfConfig,
+        mspHelper.loadRxConfig,
         mspHelper.loadRcDeadband
     ];
 
@@ -76,6 +76,14 @@ TABS.receiver.initialize = function (callback) {
     function process_html() {
         // translate to user-selected language
         localize();
+
+        if (semver.lt(CONFIG.flightControllerVersion, '1.9.1')) {
+            rcmap_options = $('select[name="rcmap_helper"] option');
+            for (i = 0; i < rcmap_options.length; ++i) {
+                option = rcmap_options[i];
+                option.setAttribute("value", option.getAttribute("value") + "5678");
+            }
+        }
 
         // fill in data from RC_tuning
         $('.tunings .throttle input[name="mid"]').val(RC_tuning.throttle_MID.toFixed(2));
@@ -152,9 +160,9 @@ TABS.receiver.initialize = function (callback) {
         $(window).on('resize', self.resize).resize(); // trigger so labels get correctly aligned on creation
 
         // handle rcmap & rssi aux channel
-        var strBuffer = [];
+        var strBuffer = [], rcMapLetters = FC.getRcMapLetters();
         for (var i = 0; i < RC_MAP.length; i++) {
-            strBuffer[RC_MAP[i]] = FC.getRcMapLetters()[i];
+            strBuffer[RC_MAP[i]] = rcMapLetters[i];
         }
 
         // reconstruct
@@ -183,29 +191,12 @@ TABS.receiver.initialize = function (callback) {
         });
 
         $rcMap.focusout(function () {
-            var val = $(this).val(),
-                strBuffer = val.split(''),
-                duplicityBuffer = [];
-
-            if (val.length != 8) {
+            if (!FC.isRcMapValid($(this).val()))
                 $(this).val(last_valid);
-                return false;
-            }
+        });
 
-            // check if characters inside are all valid, also check for duplicity
-            for (var i = 0; i < val.length; i++) {
-                if (FC.getRcMapLetters().indexOf(strBuffer[i]) < 0) {
-                    $(this).val(last_valid);
-                    return false;
-                }
-
-                if (duplicityBuffer.indexOf(strBuffer[i]) < 0) {
-                    duplicityBuffer.push(strBuffer[i]);
-                } else {
-                    $(this).val(last_valid);
-                    return false;
-                }
-            }
+        $rcMap.on('input change', function() {
+            $(this).css("color", FC.isRcMapValid($(this).val()) ? "" : "#FF0000");
         });
 
         // handle helper
@@ -346,8 +337,8 @@ TABS.receiver.initialize = function (callback) {
 
         $("a.sticks").click(function () {
             var
-                windowWidth = 370,
-                windowHeight = 510;
+                windowWidth = 420,
+                windowHeight = Math.min(window.innerHeight, 720);
 
             chrome.app.window.create("/tabs/receiver_msp.html", {
                 id: "receiver_msp",
@@ -371,7 +362,7 @@ TABS.receiver.initialize = function (callback) {
         });
 
         // Only show the MSP control sticks if the MSP Rx feature is enabled
-        $(".sticks_btn").toggle(bit_check(BF_CONFIG.features, 14 /* RX_MSP */));
+        $(".sticks_btn").toggle(FC.isRxTypeEnabled('RX_MSP'));
 
         var plot_update_rate = parseInt($(this).val(), 10);
 

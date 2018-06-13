@@ -18,6 +18,7 @@ var CONFIG,
     ADJUSTMENT_RANGES,
     SERVO_CONFIG,
     SERVO_RULES,
+    MOTOR_RULES,
     SERIAL_CONFIG,
     SENSOR_DATA,
     MOTOR_DATA,
@@ -28,7 +29,6 @@ var CONFIG,
     ARMING_CONFIG,
     FC_CONFIG,
     MISC,
-    VOLTMETER_CONFIG,
     _3D,
     DATAFLASH,
     SDCARD,
@@ -50,13 +50,16 @@ var CONFIG,
     POSITION_ESTIMATOR,
     RTH_AND_LAND_CONFIG,
     FW_CONFIG,
-    DEBUG_TRACE;
+    DEBUG_TRACE,
+    MIXER_CONFIG,
+    BATTERY_CONFIG,
+    OUTPUT_MAPPING;
 
 var FC = {
     MAX_SERVO_RATE: 125,
-    MIN_SERVO_RATE: -125,
-    isRatesInDps: function () {
-        return !!(typeof CONFIG != "undefined" && CONFIG.flightControllerIdentifier == "INAV" && semver.gt(CONFIG.flightControllerVersion, "1.1.0"));
+    MIN_SERVO_RATE: 0,
+    isNewMixer: function () {
+        return !!(typeof CONFIG != "undefined" && semver.gte(CONFIG.flightControllerVersion, "2.0.0"));
     },
     resetState: function () {
         SENSOR_STATUS = {
@@ -158,7 +161,18 @@ var FC = {
         ADJUSTMENT_RANGES = [];
 
         SERVO_CONFIG = [];
-        SERVO_RULES = new ServoMixRuleCollection();
+        SERVO_RULES = new ServoMixerRuleCollection();
+        MOTOR_RULES = new MotorMixerRuleCollection();
+
+        MIXER_CONFIG = {
+            yawMotorDirection: 0,
+            yawJumpPreventionLimit: 0,
+            platformType: -1,
+            hasFlaps: false,
+            appliedMixerPreset: -1,
+            numberOfMotors: 0,
+            numberOfServos: 0
+        },
 
         SERIAL_CONFIG = {
             ports: [],
@@ -258,6 +272,7 @@ var FC = {
             placeholder2: 0,
             mag_declination: 0, // not checked
             vbatscale: 0,
+            vbatdetectcellvoltage: 0,
             vbatmincellvoltage: 0,
             vbatmaxcellvoltage: 0,
             vbatwarningcellvoltage: 0,
@@ -269,6 +284,7 @@ var FC = {
 
         BATTERY_CONFIG = {
             vbatscale: 0,
+            vbatdetectcellvoltage: 0,
             vbatmincellvoltage: 0,
             vbatmaxcellvoltage: 0,
             vbatwarningcellvoltage: 0,
@@ -299,7 +315,10 @@ var FC = {
             dtermNotchHz: null,
             dtermNotchCutoff: null,
             gyroNotchHz2: null,
-            gyroNotchCutoff2: null
+            gyroNotchCutoff2: null,
+            accNotchHz: null,
+            accNotchCutoff: null,
+            gyroStage2LowpassHz: null
         };
 
         PID_ADVANCED = {
@@ -419,7 +438,8 @@ var FC = {
         SENSOR_ALIGNMENT = {
             align_gyro: 0,
             align_acc: 0,
-            align_mag: 0
+            align_mag: 0,
+            align_opflow: 0
         };
 
         RX_CONFIG = {
@@ -474,12 +494,23 @@ var FC = {
         };
 
         RXFAIL_CONFIG = [];
+
+        OUTPUT_MAPPING = new OutputMappingCollection();
+    },
+    getOutputUsages: function() {
+        return {
+            'ANY':      (0),
+            'MC_MOTOR': (1<<2),
+            'MC_SERVO': (1<<3),
+            'FW_MOTOR': (1<<5),
+            'FW_SERVO': (1<<6),
+            'LED':      (1<<24)
+        };
     },
     getFeatures: function () {
         var features = [
             {bit: 1, group: 'batteryVoltage', name: 'VBAT'},
             {bit: 4, group: 'esc', name: 'MOTOR_STOP'},
-            {bit: 5, group: 'other', name: 'SERVO_TILT', showNameInTip: true},
             {bit: 6, group: 'other', name: 'SOFTSERIAL', haveTip: true, showNameInTip: true},
             {bit: 7, group: 'gps', name: 'GPS', haveTip: true},
             {bit: 10, group: 'other', name: 'TELEMETRY', showNameInTip: true},
@@ -488,9 +519,15 @@ var FC = {
             {bit: 15, group: 'other', name: 'RSSI_ADC', haveTip: true, showNameInTip: true},
             {bit: 16, group: 'other', name: 'LED_STRIP', showNameInTip: true},
             {bit: 17, group: 'other', name: 'DISPLAY', showNameInTip: true},
-            {bit: 19, group: 'other', name: 'BLACKBOX', haveTip: true, showNameInTip: true},
-            {bit: 20, group: 'other', name: 'CHANNEL_FORWARDING', showNameInTip: true}
+            {bit: 19, group: 'other', name: 'BLACKBOX', haveTip: true, showNameInTip: true}
         ];
+
+        if (semver.lt(CONFIG.flightControllerVersion, "2.0.0")) {
+            features.push(
+                {bit: 20, group: 'other', name: 'CHANNEL_FORWARDING', showNameInTip: true},
+                {bit: 5, group: 'other', name: 'SERVO_TILT', showNameInTip: true},
+            );
+        }
 
         if (semver.lt(CONFIG.flightControllerVersion, "1.6.0")) {
             features.push(
@@ -500,20 +537,10 @@ var FC = {
             );
         }
 
-        if (semver.lt(CONFIG.flightControllerVersion, "1.3.0")) {
-            features.push(
-                {bit: 18, group: 'esc', name: 'ONESHOT125', haveTip: true}
-            );
-        }
-
-        if (semver.gte(CONFIG.flightControllerVersion, "1.4.0")) {
-            features.push(
-                {bit: 28, group: 'esc-priority', name: 'PWM_OUTPUT_ENABLE', haveTip: true}
-            );
-        } else {
-            $('.features.esc-priority').parent().hide();
-        }
-
+        features.push(
+            {bit: 28, group: 'esc-priority', name: 'PWM_OUTPUT_ENABLE', haveTip: true}
+        );
+    
         /*
          * Transponder disabled until not implemented in firmware
          */
@@ -529,11 +556,9 @@ var FC = {
             );
         }
 
-        if (semver.gte(CONFIG.flightControllerVersion, '1.3.0')) {
-            features.push(
-                {bit: 27, group: 'other', name: 'PWM_SERVO_DRIVER', haveTip: true, showNameInTip: true}
-            );
-        }
+        features.push(
+            {bit: 27, group: 'other', name: 'PWM_SERVO_DRIVER', haveTip: true, showNameInTip: true}
+        );
 
         if (semver.gte(CONFIG.flightControllerVersion, '1.5.0')) {
             features.push(
@@ -737,6 +762,15 @@ var FC = {
         return rxTypes;
     },
     isRxTypeEnabled: function(rxType) {
+        if (typeof rxType === 'string') {
+            var types = this.getRxTypes();
+            for (var ii = 0; ii < types.length; ii++) {
+                if (types[ii].name == rxType) {
+                    rxType = types[ii];
+                    break;
+                }
+            }
+        }
         if (semver.gt(CONFIG.flightControllerVersion, "1.7.3")) {
             return RX_CONFIG.receiver_type == rxType.value;
         }
@@ -774,6 +808,10 @@ var FC = {
             data.push('TBS Crossfire');
         }
 
+        if (semver.gte(CONFIG.flightControllerVersion, "1.9.1")) {
+            data.push('FPort');
+        }
+
         return data;
     },
     getSPIProtocolTypes: function () {
@@ -787,7 +825,6 @@ var FC = {
             'JJRC H8_3D',
             'iNav Reference protocol',
             'eLeReS'
-            
         ];
     },
     getSensorAlignments: function () {
@@ -894,7 +931,12 @@ var FC = {
         return [];
     },
     getAccelerometerNames: function () {
-        return [ "NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "FAKE"];
+        if (semver.gte(CONFIG.flightControllerVersion, "2.0.0")) {
+            return [ "NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "FAKE"];
+        }
+        else {
+            return [ "NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "FAKE"];
+        }
     },
     getMagnetometerNames: function () {
         return ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "FAKE"];
@@ -916,7 +958,10 @@ var FC = {
         }
     },
     getRangefinderNames: function () {
-        return [ "NONE", "HCSR04", "SRF10", "HCSR04I2C", "VL53L0X", "UIB"];
+        return [ "NONE", "HCSR04", "SRF10", "INAV_I2C", "VL53L0X", "MSP", "UIB"];
+    },
+    getOpticalFlowNames: function () {
+        return [ "NONE", "PMW3901", "CXOF", "MSP", "FAKE" ];
     },
     getArmingFlags: function () {
         return {
@@ -990,7 +1035,30 @@ var FC = {
         }
     },
     getRcMapLetters: function () {
-        return ['A', 'E', 'R', 'T', '5', '6', '7', '8'];
+        if (semver.gte(CONFIG.flightControllerVersion, '1.9.1'))
+            return ['A', 'E', 'R', 'T'];
+        else
+            return ['A', 'E', 'R', 'T', '5', '6', '7', '8'];
+    },
+    isRcMapValid: function (val) {
+        var strBuffer = val.split(''),
+            duplicityBuffer = [];
+
+        if (val.length != FC.getRcMapLetters().length)
+            return false;
+
+        // check if characters inside are all valid, also check for duplicity
+        for (var i = 0; i < val.length; i++) {
+            if (FC.getRcMapLetters().indexOf(strBuffer[i]) < 0)
+                return false;
+
+            if (duplicityBuffer.indexOf(strBuffer[i]) < 0)
+                duplicityBuffer.push(strBuffer[i]);
+            else
+                return false;
+        }
+
+        return true;
     },
     getServoMixInputNames: function () {
         return [

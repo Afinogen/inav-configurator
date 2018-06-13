@@ -56,6 +56,7 @@ sources.js = [
     './js/libraries/google-analytics-bundle.js',
     './node_modules/jquery/dist/jquery.min.js',
     './node_modules/jquery-ui-npm/jquery-ui.min.js',
+    './node_modules/marked/lib/marked.js',
     './js/libraries/d3.min.js',
     './js/libraries/jquery.nouislider.all.min.js',
     './node_modules/three/three.min.js',
@@ -66,6 +67,7 @@ sources.js = [
     './js/libraries/jbox/jBox.min.js',
     './js/libraries/switchery/switchery.js',
     './js/libraries/jquery.ba-throttle-debounce.js',
+    './js/helpers.js',
     './node_modules/inflection/inflection.min.js',
     './node_modules/bluebird/js/browser/bluebird.min.js',
     './js/injected_methods.js',
@@ -80,6 +82,9 @@ sources.js = [
     './js/msp/MSPchainer.js',
     './js/port_handler.js',
     './js/serial.js',
+    './js/servoMixRule.js',
+    './js/motorMixRule.js',
+    './js/outputMapping.js',
     './js/model.js',
     './js/serial_backend.js',
     './js/data_storage.js',
@@ -90,8 +95,8 @@ sources.js = [
     './js/localization.js',
     './js/boards.js',
     './js/tasks.js',
-    './js/servoMixRule.js',
-    './js/servoMixRuleCollection.js',
+    './js/servoMixerRuleCollection.js',
+    './js/motorMixerRuleCollection.js',
     './main.js',
     './tabs/*.js',
     './js/eventFrequencyAnalyzer.js',
@@ -112,10 +117,10 @@ sources.mapJs = [
 ];
 
 sources.receiverCss = [
+    './src/css/tabs/receiver_msp.css',
     './css/opensans_webfontkit/fonts.css',
     './js/libraries/jquery.nouislider.min.css',
     './js/libraries/jquery.nouislider.pips.min.css',
-    './tabs/receiver_msp.css'
 ];
 
 sources.receiverJs = [

@@ -313,6 +313,9 @@
     "communitySlackSupport": {
         "message": "Slack Support Live Chat"
     },
+    "communityTelegramSupport": {
+        "message": "Telegram Channel"
+    },
     "initialSetupBackupAndRestoreApiVersion": {
         "message": "<span style=\"color: red\">Backup and restore functionality disabled.</span>  You have firmware with API version <span style=\"color: red\">$1</span>, backup and restore requires <span style=\"color: #37a8db\">$2</span>.  Please backup your settings via the CLI, see INAV documentation for procedure."
     },
@@ -1220,8 +1223,14 @@
     "servosMax": {
         "message": "MAX"
     },
-    "servosDirectionAndRate": {
-        "message": "Direction and rate"
+    "servosReverse": {
+        "message": "Reverse"
+    },
+    "servoOutput": {
+        "message": "Output"
+    },
+    "servosRate": {
+        "message": "Rate (%)"
     },
     "servosLiveMode": {
         "message": "Enable Live mode"
@@ -1232,13 +1241,15 @@
     "servosNormal": {
         "message": "Normal"
     },
-    "servosReverse": {
-        "message": "Reverse"
+    "servoEmptyTableInfo": {
+        "message": "No servos configured. Add them using the Mixer tab."
     },
     "servosEepromSave": {
         "message": "EEPROM <span style=\"color: #37a8db\">saved</span>"
     },
-
+    "mixerSaved": {
+        "message": "Mixer <span style=\"color: #37a8db\">saved</span>"
+    },
     "gpsHead": {
         "message": "GPS"
     },
@@ -1932,6 +1943,9 @@
     "sensorRangefinder": {
         "message": "Rangefinder"
     },
+    "sensorOpflow": {
+        "message": "Optical flow"
+    },
     "manualEnablingTemplate": {
         "message": "To enable via CLI use <strong>feature {name}</strong> command"
     },
@@ -2000,6 +2014,9 @@
     },
     "LevBtn": {
         "message": "Level calibration"
+    },
+    "tabMixer": {
+        "message": "Mixer"
     },
     "tabPresets": {
         "message": "Presets"
@@ -2232,6 +2249,12 @@
     "fixedWingConfiguration": {
       "message": "Fixed Wing Settings"
     },
+    "osdLayoutDefault": {
+        "message": "Default Layout"
+    },
+    "osdLayoutAlternative": {
+        "message": "Alternative Layout #$1"
+    },
     "osdUnitImperial": {
         "message": "Imperial"
     },
@@ -2294,6 +2317,12 @@
     },
     "osdGroupVTX": {
         "message": "VTX"
+    },
+    "osdGroupMapsAndRadars": {
+        "message": "Maps and Radars"
+    },
+    "osdGroupMapsAndRadars_HELP": {
+        "message": "Maps and radars allow laying out additional elements on top of them as long as they don't overlap any of the map parts visible in the preview."
     },
     "osdElement_ONTIME_FLYTIME": {
         "message": "On Time / Fly Time"
@@ -2394,6 +2423,27 @@
     "osdElement_VTX_CHANNEL_HELP": {
         "message": "Shows the current band and channel of the VTX. Requires either a VTX with SmartAudio or Tramp or either a VTX integrated in the flight controller."
     },
+    "osdElement_MAP_NORTH": {
+        "message": "Map (North pointing up)"
+    },
+    "osdElement_MAP_TAKEOFF": {
+        "message": "Map (takeoff direction pointing up)"
+    },
+    "osdElement_RADAR": {
+        "message": "Radar"
+    },
+    "osdElement_WIND_SPEED_HORIZONTAL": {
+        "message": "Horizontal Wind Speed"
+    },
+    "osdElement_WIND_SPEED_HORIZONTAL_HELP": {
+        "message": "Shows estimated horizontal wind speed and direction."
+    },
+    "osdElement_WIND_SPEED_VERTICAL": {
+        "message": "Vertical Wind Speed"
+    },
+    "osdElement_WIND_SPEED_VERTICAL_HELP": {
+        "message": "Shows estimated vertical wind speed and direction (up or down)."
+    },
     "portColumnSensors": {
         "message": "Sensors"
     },
@@ -2442,6 +2492,9 @@
     "missionRTHsettingsTitle": {
         "message": "RTH settings"
     },
+    "missionDefaultSettingsHead": {
+        "message": "Default settings"
+    },
     "useOnlyStandalone": {
         "message": "Use stand-alone application.<br> Please visit the <a href=\"https://github.com/iNavFlight/inav-configurator/releases\" target=\"_blank\">website</a> to read the release notes and download."
     },
@@ -2459,5 +2512,68 @@
     },
     "servoMixerAdd": {
         "message": "Add new mixer rule"
+    },
+    "platformType": {
+        "message": "Platform type"
+    },
+    "platformConfiguration": {
+        "message": "Platform configuration"
+    },
+    "platformHasFlaps": {
+        "message": "Has flaps"
+    },
+    "mixerPreset": {
+        "message": "Mixer preset"
+    },
+    "mixerLoadPresetRules": {
+        "message": "Load mixer"
+    },
+    "mixerLoadAndApplyPresetRules": {
+        "message": "Load and apply"
+    },
+    "mixerApplyModalTitle" : {
+        "message": "Confirm"
+    },
+    "mixerButtonSaveAndReboot": {
+        "message": "Save and reboot"
+    },
+    "mixerApplyDescription": {
+        "message": "This action overrides all current mixer settings and replaces them with default values. There is no 'Undo' option!"
+    },
+    "motorMixer": {
+        "message": "Motor Mixer"
+    },
+    "servo": {
+        "message": "Servo"
+    },
+    "input": {
+        "message": "Input"
+    },
+    "weight": {
+        "message": "Weight"
+    },
+    "speed": {
+        "message": "Speed"
+    },
+    "mixerPresetTitle": {
+        "message": "Mixer preset"
+    },
+    "fcFirmwareUpdateRequired": {
+        "message": "Flight Controller firmware has to be updated to latest version to use this function"
+    },
+    "mixerNotConfigured": {
+        "message": "Mixer not configured. Use <u>Mixer</u> tab to set it up!"
+    },
+    "confirm_reset_settings": {
+        "message": "Do you really want to reset all settings?\nATTENTION: All settings are lost! You have to setup the whole aircraft after this operation!"
+    },
+    "mappingTableOutput": {
+        "message": "Output"
+    },
+    "mappingTableFunction": {
+        "message": "Function"
+    },
+    "mappingTableTitle": {
+        "message": "Output Mapping"
     }
 }

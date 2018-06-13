@@ -1,4 +1,4 @@
-/*global chrome*/
+/*global chrome,GUI,FC_CONFIG*/
 'use strict';
 
 TABS.configuration = {};
@@ -95,19 +95,21 @@ TABS.configuration.initialize = function (callback, scrollPosition) {
 
     function process_html() {
 
-        var i;
+        let i,
+            mixer_list_e = $('select.mixerList'),
+            legacyMixers = helper.mixer.getLegacyList();
 
-        var mixer_list_e = $('select.mixerList');
-        for (i = 0; i < mixerList.length; i++) {
-            mixer_list_e.append('<option value="' + (i + 1) + '">' + mixerList[i].name + '</option>');
+        for (i in legacyMixers) {
+            if (legacyMixers.hasOwnProperty(i)) {
+                mixer_list_e.append('<option value="' + legacyMixers[i].id + '">' + legacyMixers[i].name + '</option>');
+            }
         }
 
         mixer_list_e.change(function () {
-            var val = parseInt($(this).val(), 10);
+            BF_CONFIG.mixerConfiguration = parseInt($(this).val(), 10);
 
-            BF_CONFIG.mixerConfiguration = val;
-
-            $('.mixerPreview img').attr('src', './resources/motor_order/' + mixerList[val - 1].image + '.svg');
+            $('.mixerPreview img').attr('src', './resources/motor_order/'
+                + helper.mixer.getById(BF_CONFIG.mixerConfiguration).image + '.svg');
         });
 
         // select current mixer configuration
@@ -370,184 +372,168 @@ TABS.configuration.initialize = function (callback, scrollPosition) {
 
         }
 
-        if (semver.gte(CONFIG.flightControllerVersion, "1.3.0")) {
-
-            var $escProtocol = $('#esc-protocol');
-            var $escRate = $('#esc-rate');
-            for (i in escProtocols) {
-                if (escProtocols.hasOwnProperty(i)) {
-                    var protocolData = escProtocols[i];
-                    $escProtocol.append('<option value="' + i + '">' + protocolData.name + '</option>');
-                }
+        var $escProtocol = $('#esc-protocol');
+        var $escRate = $('#esc-rate');
+        for (i in escProtocols) {
+            if (escProtocols.hasOwnProperty(i)) {
+                var protocolData = escProtocols[i];
+                $escProtocol.append('<option value="' + i + '">' + protocolData.name + '</option>');
             }
-
-            buildMotorRates();
-            $escProtocol.val(ADVANCED_CONFIG.motorPwmProtocol);
-            $escRate.val(ADVANCED_CONFIG.motorPwmRate);
-
-            $escProtocol.change(function () {
-                ADVANCED_CONFIG.motorPwmProtocol = $(this).val();
-                buildMotorRates();
-                ADVANCED_CONFIG.motorPwmRate = escProtocols[ADVANCED_CONFIG.motorPwmProtocol].defaultRate;
-                $escRate.val(ADVANCED_CONFIG.motorPwmRate);
-            });
-
-            $escRate.change(function () {
-                ADVANCED_CONFIG.motorPwmRate = $(this).val();
-            });
-
-            $("#esc-protocols").show();
-
-            var $servoRate = $('#servo-rate');
-
-            for (i in servoRates) {
-                if (servoRates.hasOwnProperty(i)) {
-                    $servoRate.append('<option value="' + i + '">' + servoRates[i] + '</option>');
-                }
-            }
-            /*
-             *  If rate from FC is not on the list, add a new entry
-             */
-            if ($servoRate.find('[value="' + ADVANCED_CONFIG.servoPwmRate + '"]').length == 0) {
-                $servoRate.append('<option value="' + ADVANCED_CONFIG.servoPwmRate + '">' + ADVANCED_CONFIG.servoPwmRate + 'Hz</option>');
-            }
-
-            $servoRate.val(ADVANCED_CONFIG.servoPwmRate);
-            $servoRate.change(function () {
-                ADVANCED_CONFIG.servoPwmRate = $(this).val();
-            });
-
-            $('#servo-rate-container').show();
         }
+
+        buildMotorRates();
+        $escProtocol.val(ADVANCED_CONFIG.motorPwmProtocol);
+        $escRate.val(ADVANCED_CONFIG.motorPwmRate);
+
+        $escProtocol.change(function () {
+            ADVANCED_CONFIG.motorPwmProtocol = $(this).val();
+            buildMotorRates();
+            ADVANCED_CONFIG.motorPwmRate = escProtocols[ADVANCED_CONFIG.motorPwmProtocol].defaultRate;
+            $escRate.val(ADVANCED_CONFIG.motorPwmRate);
+        });
+
+        $escRate.change(function () {
+            ADVANCED_CONFIG.motorPwmRate = $(this).val();
+        });
+
+        $("#esc-protocols").show();
+
+        var $servoRate = $('#servo-rate');
+
+        for (i in servoRates) {
+            if (servoRates.hasOwnProperty(i)) {
+                $servoRate.append('<option value="' + i + '">' + servoRates[i] + '</option>');
+            }
+        }
+        /*
+            *  If rate from FC is not on the list, add a new entry
+            */
+        if ($servoRate.find('[value="' + ADVANCED_CONFIG.servoPwmRate + '"]').length == 0) {
+            $servoRate.append('<option value="' + ADVANCED_CONFIG.servoPwmRate + '">' + ADVANCED_CONFIG.servoPwmRate + 'Hz</option>');
+        }
+
+        $servoRate.val(ADVANCED_CONFIG.servoPwmRate);
+        $servoRate.change(function () {
+            ADVANCED_CONFIG.servoPwmRate = $(this).val();
+        });
+
+        $('#servo-rate-container').show();
 
         var $looptime = $("#looptime");
 
-        if (semver.gte(CONFIG.flightControllerVersion, "1.4.0")) {
-            $(".requires-v1_4").show();
+        var $gyroLpf = $("#gyro-lpf"),
+            $gyroSync = $("#gyro-sync-checkbox"),
+            $asyncMode = $('#async-mode'),
+            $gyroFrequency = $('#gyro-frequency'),
+            $accelerometerFrequency = $('#accelerometer-frequency'),
+            $attitudeFrequency = $('#attitude-frequency');
 
-            var $gyroLpf = $("#gyro-lpf"),
-                $gyroSync = $("#gyro-sync-checkbox"),
-                $asyncMode = $('#async-mode'),
-                $gyroFrequency = $('#gyro-frequency'),
-                $accelerometerFrequency = $('#accelerometer-frequency'),
-                $attitudeFrequency = $('#attitude-frequency');
+        var values = FC.getGyroLpfValues();
 
-            var values = FC.getGyroLpfValues();
-
-            for (i in values) {
-                if (values.hasOwnProperty(i)) {
-                    //noinspection JSUnfilteredForInLoop
-                    $gyroLpf.append('<option value="' + i + '">' + values[i].label + '</option>');
-                }
+        for (i in values) {
+            if (values.hasOwnProperty(i)) {
+                //noinspection JSUnfilteredForInLoop
+                $gyroLpf.append('<option value="' + i + '">' + values[i].label + '</option>');
             }
-
-            $gyroLpf.val(INAV_PID_CONFIG.gyroscopeLpf);
-            $gyroSync.prop("checked", ADVANCED_CONFIG.gyroSync);
-
-            $gyroLpf.change(function () {
-                INAV_PID_CONFIG.gyroscopeLpf = $gyroLpf.val();
-
-                GUI.fillSelect(
-                    $looptime,
-                    FC.getLooptimes()[FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick].looptimes,
-                    FC_CONFIG.loopTime,
-                    'Hz'
-                );
-                $looptime.val(FC.getLooptimes()[FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick].defaultLooptime);
-                $looptime.change();
-
-                GUI.fillSelect($gyroFrequency, FC.getGyroFrequencies()[FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick].looptimes);
-                $gyroFrequency.val(FC.getLooptimes()[FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick].defaultLooptime);
-                $gyroFrequency.change();
-            });
-
-            $gyroLpf.change();
-
-            $looptime.val(FC_CONFIG.loopTime);
-            $looptime.change(function () {
-                FC_CONFIG.loopTime = $(this).val();
-
-                if (INAV_PID_CONFIG.asynchronousMode == 0) {
-                    //All task running together
-                    ADVANCED_CONFIG.gyroSyncDenominator = Math.floor(FC_CONFIG.loopTime / FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick);
-                }
-            });
-            $looptime.change();
-
-            $gyroFrequency.val(ADVANCED_CONFIG.gyroSyncDenominator * FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick);
-            $gyroFrequency.change(function () {
-                ADVANCED_CONFIG.gyroSyncDenominator = Math.floor($gyroFrequency.val() / FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick);
-            });
-
-            $gyroSync.change(function () {
-                if ($(this).is(":checked")) {
-                    ADVANCED_CONFIG.gyroSync = 1;
-                } else {
-                    ADVANCED_CONFIG.gyroSync = 0;
-                }
-            });
-
-            $gyroSync.change();
-
-            /*
-             * Async mode select
-             */
-            GUI.fillSelect($asyncMode, FC.getAsyncModes());
-            $asyncMode.val(INAV_PID_CONFIG.asynchronousMode);
-            $asyncMode.change(function () {
-                INAV_PID_CONFIG.asynchronousMode = $asyncMode.val();
-
-                if (INAV_PID_CONFIG.asynchronousMode == 0) {
-                    $('#gyro-sync-wrapper').show();
-                    $('#gyro-frequency-wrapper').hide();
-                    $('#accelerometer-frequency-wrapper').hide();
-                    $('#attitude-frequency-wrapper').hide();
-                } else if (INAV_PID_CONFIG.asynchronousMode == 1) {
-                    $('#gyro-sync-wrapper').hide();
-                    $('#gyro-frequency-wrapper').show();
-                    $('#accelerometer-frequency-wrapper').hide();
-                    $('#attitude-frequency-wrapper').hide();
-                    ADVANCED_CONFIG.gyroSync = 1;
-                } else {
-                    $('#gyro-sync-wrapper').hide();
-                    $('#gyro-frequency-wrapper').show();
-                    $('#accelerometer-frequency-wrapper').show();
-                    $('#attitude-frequency-wrapper').show();
-                    ADVANCED_CONFIG.gyroSync = 1;
-                }
-            });
-            $asyncMode.change();
-
-            GUI.fillSelect($accelerometerFrequency, FC.getAccelerometerTaskFrequencies(), INAV_PID_CONFIG.accelerometerTaskFrequency, 'Hz');
-            $accelerometerFrequency.val(INAV_PID_CONFIG.accelerometerTaskFrequency);
-            $accelerometerFrequency.change(function () {
-                INAV_PID_CONFIG.accelerometerTaskFrequency = $accelerometerFrequency.val();
-            });
-
-            GUI.fillSelect($attitudeFrequency, FC.getAttitudeTaskFrequencies(), INAV_PID_CONFIG.attitudeTaskFrequency, 'Hz');
-            $attitudeFrequency.val(INAV_PID_CONFIG.attitudeTaskFrequency);
-            $attitudeFrequency.change(function () {
-                INAV_PID_CONFIG.attitudeTaskFrequency = $attitudeFrequency.val();
-            });
-
-        } else {
-            GUI.fillSelect($looptime, FC.getLooptimes()[125].looptimes, FC_CONFIG.loopTime, 'Hz');
-
-            $looptime.val(FC_CONFIG.loopTime);
-            $looptime.change(function () {
-                FC_CONFIG.loopTime = $(this).val();
-            });
-
-            $(".requires-v1_4").hide();
         }
 
+        $gyroLpf.val(INAV_PID_CONFIG.gyroscopeLpf);
+        $gyroSync.prop("checked", ADVANCED_CONFIG.gyroSync);
+
+        $gyroLpf.change(function () {
+            INAV_PID_CONFIG.gyroscopeLpf = $gyroLpf.val();
+
+            GUI.fillSelect(
+                $looptime,
+                FC.getLooptimes()[FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick].looptimes,
+                FC_CONFIG.loopTime,
+                'Hz'
+            );
+            $looptime.val(FC.getLooptimes()[FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick].defaultLooptime);
+            $looptime.change();
+
+            GUI.fillSelect($gyroFrequency, FC.getGyroFrequencies()[FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick].looptimes);
+            $gyroFrequency.val(FC.getLooptimes()[FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick].defaultLooptime);
+            $gyroFrequency.change();
+        });
+
+        $gyroLpf.change();
+
+        $looptime.val(FC_CONFIG.loopTime);
+        $looptime.change(function () {
+            FC_CONFIG.loopTime = $(this).val();
+
+            if (INAV_PID_CONFIG.asynchronousMode == 0) {
+                //All task running together
+                ADVANCED_CONFIG.gyroSyncDenominator = Math.floor(FC_CONFIG.loopTime / FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick);
+            }
+        });
+        $looptime.change();
+
+        $gyroFrequency.val(ADVANCED_CONFIG.gyroSyncDenominator * FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick);
+        $gyroFrequency.change(function () {
+            ADVANCED_CONFIG.gyroSyncDenominator = Math.floor($gyroFrequency.val() / FC.getGyroLpfValues()[INAV_PID_CONFIG.gyroscopeLpf].tick);
+        });
+
+        $gyroSync.change(function () {
+            if ($(this).is(":checked")) {
+                ADVANCED_CONFIG.gyroSync = 1;
+            } else {
+                ADVANCED_CONFIG.gyroSync = 0;
+            }
+        });
+
+        $gyroSync.change();
+
+        /*
+            * Async mode select
+            */
+        GUI.fillSelect($asyncMode, FC.getAsyncModes());
+        $asyncMode.val(INAV_PID_CONFIG.asynchronousMode);
+        $asyncMode.change(function () {
+            INAV_PID_CONFIG.asynchronousMode = $asyncMode.val();
+
+            if (INAV_PID_CONFIG.asynchronousMode == 0) {
+                $('#gyro-sync-wrapper').show();
+                $('#gyro-frequency-wrapper').hide();
+                $('#accelerometer-frequency-wrapper').hide();
+                $('#attitude-frequency-wrapper').hide();
+            } else if (INAV_PID_CONFIG.asynchronousMode == 1) {
+                $('#gyro-sync-wrapper').hide();
+                $('#gyro-frequency-wrapper').show();
+                $('#accelerometer-frequency-wrapper').hide();
+                $('#attitude-frequency-wrapper').hide();
+                ADVANCED_CONFIG.gyroSync = 1;
+            } else {
+                $('#gyro-sync-wrapper').hide();
+                $('#gyro-frequency-wrapper').show();
+                $('#accelerometer-frequency-wrapper').show();
+                $('#attitude-frequency-wrapper').show();
+                ADVANCED_CONFIG.gyroSync = 1;
+            }
+        });
+        $asyncMode.change();
+
+        GUI.fillSelect($accelerometerFrequency, FC.getAccelerometerTaskFrequencies(), INAV_PID_CONFIG.accelerometerTaskFrequency, 'Hz');
+        $accelerometerFrequency.val(INAV_PID_CONFIG.accelerometerTaskFrequency);
+        $accelerometerFrequency.change(function () {
+            INAV_PID_CONFIG.accelerometerTaskFrequency = $accelerometerFrequency.val();
+        });
+
+        GUI.fillSelect($attitudeFrequency, FC.getAttitudeTaskFrequencies(), INAV_PID_CONFIG.attitudeTaskFrequency, 'Hz');
+        $attitudeFrequency.val(INAV_PID_CONFIG.attitudeTaskFrequency);
+        $attitudeFrequency.change(function () {
+            INAV_PID_CONFIG.attitudeTaskFrequency = $attitudeFrequency.val();
+        });
+    
         if (semver.gte(CONFIG.flightControllerVersion, "1.5.0")) {
 
             var $sensorAcc = $('#sensor-acc'),
                 $sensorMag = $('#sensor-mag'),
                 $sensorBaro = $('#sensor-baro'),
                 $sensorPitot = $('#sensor-pitot'),
-                $sensorRangefinder = $('#sensor-rangefinder');
+                $sensorRangefinder = $('#sensor-rangefinder'),
+                $sensorOpflow = $('#sensor-opflow');
 
             GUI.fillSelect($sensorAcc, FC.getAccelerometerNames());
             $sensorAcc.val(SENSOR_CONFIG.accelerometer);
@@ -580,6 +566,12 @@ TABS.configuration.initialize = function (callback, scrollPosition) {
                 SENSOR_CONFIG.rangefinder = $sensorRangefinder.val();
             });
 
+            GUI.fillSelect($sensorOpflow, FC.getOpticalFlowNames());
+            $sensorOpflow.val(SENSOR_CONFIG.opflow);
+            $sensorOpflow.change(function () {
+                SENSOR_CONFIG.opflow = $sensorOpflow.val();
+            });
+
             $(".requires-v1_5").show();
         } else {
             $(".requires-v1_5").hide();
@@ -595,6 +587,12 @@ TABS.configuration.initialize = function (callback, scrollPosition) {
             $(".requires-v1_8_1").show();
         } else {
             $(".requires-v1_8_1").hide();
+        }
+
+        if (semver.gte(CONFIG.flightControllerVersion, "2.0.0")) {
+            $(".requires-v2_0").show();
+        } else {
+            $(".requires-v2_0").hide();
         }
 
         $('#3ddeadbandlow').val(_3D.deadband3d_low);
@@ -697,22 +695,13 @@ TABS.configuration.initialize = function (callback, scrollPosition) {
 
             var rxTypes = FC.getRxTypes();
 
-            function is_using_rx_type(name) {
-                for (var ii = 0; ii < rxTypes.length; ii++) {
-                    if (rxTypes[ii].name == name) {
-                        return FC.isRxTypeEnabled(rxTypes[ii]);
-                    }
-                }
-                return false;
+            // track feature usage
+            if ($('#rxType').val() == 'RX_SERIAL') {
+                googleAnalytics.sendEvent('Setting', 'SerialRxProvider', $('#serial-rx-protocol').find(':selected').text());
             }
 
             // track feature usage
-            if (is_using_rx_type('RX_SERIAL')) {
-                googleAnalytics.sendEvent('Setting', 'SerialRxProvider', serialRxTypes[RX_CONFIG.serialrx_provider]);
-            }
-
-            // track feature usage
-            if (is_using_rx_type('RX_SPI')) {
+            if ($('#rxType').val() == 'RX_SPI') {
                 googleAnalytics.sendEvent('Setting', 'nrf24Protocol', FC.getSPIProtocolTypes()[RX_CONFIG.spirx_protocol]);
             }
 
@@ -720,9 +709,10 @@ TABS.configuration.initialize = function (callback, scrollPosition) {
                 googleAnalytics.sendEvent('Setting', 'GpsProtocol', gpsProtocols[MISC.gps_type]);
                 googleAnalytics.sendEvent('Setting', 'GpsSbas', gpsSbas[MISC.gps_ubx_sbas]);
             }
-
-            googleAnalytics.sendEvent('Setting', 'Mixer', mixerList[BF_CONFIG.mixerConfiguration - 1].name);
-            googleAnalytics.sendEvent('Setting', 'ReceiverMode', $("input[name='rxMode']:checked").closest('.radio').find('label').text());
+            if (!FC.isNewMixer()) {
+                googleAnalytics.sendEvent('Setting', 'Mixer', helper.mixer.getById(BF_CONFIG.mixerConfiguration).name);
+            }
+            googleAnalytics.sendEvent('Setting', 'ReceiverMode', $('#rxType').val());
             googleAnalytics.sendEvent('Setting', 'Looptime', FC_CONFIG.loopTime);
 
             /*
@@ -756,6 +746,14 @@ TABS.configuration.initialize = function (callback, scrollPosition) {
             }
             $('#batterycurrent').val([ANALOG.amperage.toFixed(2)]);
         }, 100, true); // 10 fps
+
+        /*
+         * Hide mixer section
+         */
+        if (FC.isNewMixer()) {
+            $('.mixer').addClass("is-hidden");
+        }
+
         GUI.content_ready(callback);
     }
 };

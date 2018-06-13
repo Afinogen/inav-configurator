@@ -939,6 +939,18 @@ li.active .ic_mission {
     background-image: url("../images/icons/cf_icon_mission_white.svg");
 }
 
+.ic_mixer {
+    background-image: url("../images/icons/cf_icon_mixer_grey.svg");
+}
+
+.ic_mixer:hover {
+    background-image: url("../images/icons/cf_icon_mixer_white.svg");
+}
+
+li.active .ic_mixer {
+    background-image: url("../images/icons/cf_icon_mixer_white.svg");
+}
+
 #content {
     margin-top: 0;
     padding: 0;
@@ -1039,6 +1051,11 @@ dialog {
     border-radius: 3px;
     font-size: 11px;
     font-family: 'open_sansregular', Arial, serif;
+}
+
+.note--big {
+    font-size: 1.15em;
+    padding: 0.6em;
 }
 
 .note_spacer {
@@ -1420,6 +1437,22 @@ dialog {
 .green a:hover {
     background-color: #45bce5;
     border: 1px solid #3a9dbf;
+    text-shadow: 0 1px rgba(0, 0, 0, 0.25);
+    color: #fff;
+    transition: all ease 0.2s;
+}
+
+.red a {
+    /* background-color: #37a8db; */
+    text-shadow: 0 1px rgba(0, 0, 0, 0.25);
+    color: #ff1e1e;
+    border: 1px solid #a00000;
+    transition: all ease 0.2s;
+}
+
+.red a:hover {
+    background-color: #f86975;
+    border: 1px solid #a00000;
     text-shadow: 0 1px rgba(0, 0, 0, 0.25);
     color: #fff;
     transition: all ease 0.2s;
@@ -1994,4 +2027,12 @@ select {
 
 .spacebottom {
     margin-bottom: 15px;
+}
+
+.position-relative {
+    position: relative;
+}
+
+.text-center {
+    text-align: center;
 }
